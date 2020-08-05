@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="description" content="EnableX Voice Service">
+  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Sample App: Make an outbound call using EnableX Voice Service</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css"
+    integrity="sha256-h20CPZ0QyXlBuAw7A+KluUYx/3pK+c7lYEpqLTlxjYQ=" crossorigin="anonymous" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/fontawesome.min.css"
+    integrity="sha256-CuUPKpitgFmSNQuPDL5cEfPOOJT/+bwUlhfumDJ9CI4=" crossorigin="anonymous" />
+  <link rel="shortcut icon" type="image/ico" href="./public/img/favicon.ico" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.0/css/bootstrap.min.css"
+    integrity="sha256-aAr2Zpq8MZ+YA/D6JtRD3xtrwpEz2IqOS+pWD/7XKIw=" crossorigin="anonymous" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.css"
+    integrity="sha256-R91pD48xW+oHbpJYGn5xR0Q7tMhH4xOrWn1QqMRINtA=" crossorigin="anonymous" />
+  <link href="./public/css/style-sign-in.css" rel="stylesheet">
+</head>
+
+<body>
+  <header>
+    <!-- =================================================== Nav section ============================-->
+    <div id="app" class="container">
+      <nav class="navbar navbar-expand-lg navbar-light">
+        <a class="navbar-brand" href="https://www.enablex.io/">
+          <img src="./public/img/enableX_logo.png" alt="EnableX">
+        </a>
+        <div class="navbar-collapse collapse nav justify-content-end">
+          <ul class="nav justify-content-end ton-hedr-nav">
+            <li class="nav-item">
+              <a class="nav-link login">Sample Code <span class='fa fa-code'></span></a>
+            </li>
+          </ul>
+        </div>
+      </nav>
+    </div>
+  </header>
+  <div class="container">
+    <div class="row d-flex justify-content-center align-items-baseline">
+      <div class="col-12 col-md-12 col-xl-4 col-lg-4">
+        <ul id="myList">
+        </ul>
+      </div>
+      <div class="col-12 col-md-12 col-xl-8 col-lg-8">
+        <div class="form-bg" class="voice_call_div" style="display: block;">
+          <h1 class="text-center">Start a Voice Call</h1>
+          <div class="loading text-center">Loading....</div>
+          <form class="mt-4" id="voice_call_form">
+            <!-- <div class="form-row">
+              <div class="form-group col-12">
+                <input type="text" class="form-control" id="serviceName" name="serviceName" placeholder="Service Name">
+                <small id="serviceNameHelp" class="form-text text-muted">Name of your
+                  service. Example - <b>Test Voice Call</b></small>
+              </div>
+            </div> -->
+            <!-- <div class="form-row">
+              <div class="form-group col-md-12">
+                <input type="text" class="form-control" id="ownerReference" name="ownerReference"
+                  placeholder="Owner Reference">
+                <small id="ownerReferenceHelp" class="form-text text-muted">It returned in response to
+                  an event to co-relate requests and responses. Example - <b>John Doe</b></small>
+              </div>
+            </div> -->
+            <!-- <div class="form-row">
+              <div class="form-group col-md-12">
+                <label class="form-check-label">Record Call</label>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="radio" name="recordCall" id="inlineRadio1" value="true">
+                  <label class="form-check-label" for="inlineRadio1">Yes</label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="radio" name="recordCall" id="inlineRadio2" value="false"
+                    checked>
+                  <label class="form-check-label" for="inlineRadio2">No</label>
+                </div>
+                <small id="emailHelp" class="form-text text-muted">Recording by default or on
+                  command.</small>
+              </div>
+            </div> -->
+            <!-- <div class="form-row">
+              <div class="form-group col-12">
+                <input type="text" class="form-control" id="fromNumber" name="fromNumber" placeholder="From Number">
+                <small id="fromNumberHelp" class="form-text text-muted">The Calling Line Identity assigned
+                  on the outbound number and configured <a
+                    href="https://portal.enablex.io/projects/dashboard/voice/phone-numbers/">Here</a>.
+                  Example - <b>911234567890</b></small>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group col-12">
+                <input type="text" class="form-control" id="toNumber" name="toNumber" placeholder="To Number">
+                <small id="toNumberHelp" class="form-text text-muted">Destination number. Should be
+                  formatted with a country code (91 for India, 1 for US etc.). Example -
+                  <b>911234567890</b></small>
+              </div>
+            </div> -->
+            <!-- <div class="form-row">
+              <div class="form-group col-12">
+                <input type="text" class="form-control" id="language" name="language" placeholder="Enter Language"
+                  >
+                <small id="languageHelp" class="form-text text-muted">The preferred spoken language for
+                  TTS. Example - <b>en-US</b></small>
+              </div>
+            </div> -->
+            <!-- <div class="form-row">
+              <div class="form-group col-md-12">
+                <select class="selectpicker show-menu-arrow form-control" id="voice" name="voice">
+                  <option value="female">Female</option>
+                  <option value="male">Male</option>
+                </select>
+                <small id="languageHelp" class="form-text text-muted">The preferred spoken voice for
+                  TTS.</small>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group col-12">
+                <input type="text" class="form-control" id="promptMessage" name="promptMessage"
+                  placeholder="What would you like to hear?">
+                <small id="promptMessageHelp" class="form-text text-muted">TTS (Text to speech) to play at
+                  the prompt. Example - <b>Hi, This is a sample message for testing EnableX voice
+                    call</b>.</small>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group col-md-12">
+                <input type="checkbox" name="agree" style="height: 15px;width:15px;" checked>
+                <label>I
+                  agree to <a target="_blank" href="https://www.enablex.io/legals/tou/">Terms of
+                    Use</a> and <a target="_blank" href="https://www.enablex.io/legals/privacy-policy/">Privacy
+                    Policy</a>
+                </label>
+              </div>
+            </div> -->
+            <div class="form-row justify-content-start">
+              <div class="form-group col-12 checkbox-sec">
+                <div>
+                  <div>
+                    <input type="submit" value="Call" class="btn btn-primary" id="joinRoom">
+                  </div>
+                  <br>
+                  <span id="message" style="color: red"></span>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer>
+    <div class="container">
+      <div class="row">
+        <div class="col-12 col-md-6">
+          <ul class="footerUl">
+            <li><a href="https://www.enablex.io/legals/tou/">Terms</a></li>
+            <li><a href="https://www.enablex.io/legals/privacy-policy/">Privacy Policy</a></li>
+          </ul>
+        </div>
+        <div class="col-12 col-md-6">
+          <p class="footer-p">Copyright © VCLOUDX PTE LTD. All rights reserved.</p>
+        </div>
+      </div>
+    </div>
+  </footer>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"
+    integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.0/js/bootstrap.min.js"
+    integrity="sha256-OFRAJNoaD8L3Br5lglV7VyLRf0itmoBzWUoM+Sji4/8=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.js"
+    integrity="sha256-yNbKY1y6h2rbVcQtf0b8lq4a+xpktyFc3pSYoGAY1qQ=" crossorigin="anonymous"></script>
+  <script type="text/javascript" src="./public/js/index.js"></script>
+  <script>
+
+    if (!!window.EventSource) {
+      var evtSource = new EventSource('http://localhost:3000/event-stream');
+      console.log(evtSource.withCredentials);
+      console.log(evtSource.readyState);
+      console.log(evtSource.url);
+      var eventList = document.getElementById("myList");
+
+      evtSource.onopen = function () {
+        console.log("Connection to server opened.");
+      };
+
+      evtSource.onevent
+
+      evtSource.onmessage = function (e) {
+        console.log(e.data);
+        var newElement = document.createElement("li");
+
+        newElement.textContent = e.data + "\n\n";
+        eventList.appendChild(newElement);
+      };
+
+      evtSource.onerror = function () {
+        console.log("EventSource failed.");
+      };
+    } else {
+      alert('event shource is not supported to your borwser');
+    }
+  </script>
+</body>
+
+</html>

@@ -5,7 +5,6 @@ const https = require('https');
 // modules installed from npm
 const events = require('events');
 const express = require('express');
-// const socketio = require('socket.io');
 const bodyParser = require('body-parser');
 const crypto = require('crypto');
 const ngrok = require('ngrok');
@@ -32,17 +31,17 @@ const consoleLog = [];
 
 /* Function to Create Call */
 function createCall(eventUrl, callback) {
-  logger.info(`Initiating a call to ${config.to_number}`);
-  consoleLog.push(`Initiating a call to ${config.to_number}`);
+  logger.info(`Initiating a call from ${config.enablex_number} to ${config.to_number}`);
+  consoleLog.push(`Initiating a call from ${config.enablex_number} to ${config.to_number}`);
   const postData = JSON.stringify({
     name: config.app_name,
-    owner_ref: 'XYZ',
+    owner_ref: config.owner_ref,
     to: config.to_number,
     from: config.enablex_number,
     action_on_connect: {
       play: {
-        text: 'This is the welcome greeting',
-        voice: 'female',
+        text: config.play_text,
+        voice: config.play_voice,
         language: 'en-US',
         prompt_ref: '1',
       },
@@ -92,17 +91,11 @@ if (config.ngrok === true) {
         url = await ngrok.connect({ proto: 'http', addr: config.webhook_port });
         logger.info('ngrok tunnel set up:', url);
       } catch (error) {
-        logger.info(`Error happened while trying to connect via ngrock ${JSON.stringify(error)}`);
+        logger.info(`Error happened while trying to connect via ngrok ${JSON.stringify(error)}`);
         shutdown();
         return;
       }
       url += '/event';
-      /* Initiating Outbound Call */
-      // createCall(url, (response) => {
-      //   const msg = JSON.parse(response);
-      //   call.voice_id = msg.voice_id;
-      //   logger.info(`Voice Id of the Call ${call.voice_id}`);
-      // });
     })();
   });
 } else if (config.ngrok === false) {
@@ -133,14 +126,11 @@ app.use(bodyParser.urlencoded({ extended: false }));
 
 app.use(express.static('client'));
 app.post('/create-call', (req, res) => {
-  // logger.info(`event_url ${url}`);
-  // const reqData = req.body;
-  // reqData.action_on_connect.event_url = url;
-  // outboundCall(reqData, (status, data) => {
-  //   res.status(200);
-  //   res.send(data);
-  // });
   /* Initiating Outbound Call */
+  config.enablex_number = req.body.from;
+  config.to_number = req.body.to;
+  config.play_text = req.body.play_text;
+  config.play_voice = req.body.play_voice;
   createCall(url, (response) => {
     const msg = JSON.parse(response);
     call.voice_id = msg.voice_id;
@@ -207,7 +197,7 @@ function voiceEventHandler(voiceEvent) {
       const playCommand = JSON.stringify({
         play: {
           text: 'This is the 1st level menu, Hanging up the call in 10 Sec',
-          voice: 'female',
+          voice: config.play_voice,
           language: 'en-US',
           prompt_ref: '2',
         },

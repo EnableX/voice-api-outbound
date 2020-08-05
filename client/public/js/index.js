@@ -36,7 +36,8 @@ function makeCall(details, callback) {
   const xhttp = new XMLHttpRequest();
   xhttp.onreadystatechange = function () {
     if (this.readyState === 4 && this.status >= 200) {
-      const response = JSON.parse(this.responseText);
+      // const response = JSON.parse(this.responseText);
+      const response = this.responseText;
       if (response.state === 'failed') {
         // eslint-disable-next-line no-undef
         toastr.error(response.state);
@@ -54,38 +55,14 @@ function makeCall(details, callback) {
 document.getElementById('voice_call_form').addEventListener('submit', (event) => {
   event.preventDefault();
 
-  // const retData = {
-  //   name: document.getElementById('serviceName').value,
-  //   owner_ref: document.getElementById('ownerReference').value,
-  //   // auto_record: document.getElementsByName('recordCall').value,
-  //   from: document.getElementById('fromNumber').value,
-  //   to: document.getElementById('toNumber').value,
-  //   action_on_connect: {
-  //     play: {
-  //       text: document.getElementById('promptMessage').value,
-  //       voice: document.getElementById('voice').value,
-  //       language: document.getElementById('language').value,
-  //     },
-  //   },
-  // };
-
   const retData = {
-    name: 'TEST_APP',
-    owner_ref: 'XYZ',
-    // auto_record: document.getElementsByName('recordCall').value,
-    to: '919910056363',
-    from: '3197010240003',
-    action_on_connect: {
-      play: {
-        text: 'This is the welcome greeting',
-        voice: 'female',
-        language: 'en-US',
-        prompt_ref: '1',
-      },
-    },
+    from: document.getElementById('fromNumber').value,
+    to: document.getElementById('toNumber').value,
+    play_text: document.getElementById('promptMessage').value,
+    play_voice: document.getElementById('voice').value,
   };
 
-  console.log(JSON.stringify(retData));
+  // console.log(JSON.stringify(retData));
 
   makeCall(retData, (response) => {
     console.log(response);

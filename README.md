@@ -9,15 +9,15 @@ This example contains instructions how users can initiate Outbound Calls.
 
 
 ## Installation
-git clone {repo_url}
-cd {git_directory}
-npm install
+- git clone {repo_url}
+- cd {git_directory}
+- npm install
 
 ## Setting up configurations.
 - Set app_id and app_key & other parameters in config file.
 - For Outbound call client, Open `config-outbound.js` and set Enablex Application credentials, app_id and app_key
-  config.app_id
-  config.app_key
+  - config.app_id
+  - config.app_key
 
 ## Webhook security
 - Webhook security is also implemented as part of the voice service APIs.
@@ -27,4 +27,4 @@ npm install
 
 ## Starting the client application script
 - For Outbound Calls, cd outbound
-  node client-outbound.js
+  - node client-outbound.js

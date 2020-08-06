@@ -8,10 +8,10 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const crypto = require('crypto');
 const ngrok = require('ngrok');
+require('dotenv').config();
 const _ = require('lodash');
 
 // application modules
-const config = require('./config-outbound');
 const logger = require('./logger');
 const {
   makeVoiceAPICall, hangupCall, onError,
@@ -31,17 +31,17 @@ const consoleLog = [];
 
 /* Function to Create Call */
 function createCall(eventUrl, callback) {
-  logger.info(`Initiating a call from ${config.enablex_number} to ${config.to_number}`);
-  consoleLog.push(`Initiating a call from ${config.enablex_number} to ${config.to_number}`);
+  logger.info(`Initiating a call from ${process.env.ENABLEX_OUTBOUND_NUMBER} to ${process.env.TO_NUMBER}`);
+  consoleLog.push(`Initiating a call from ${process.env.ENABLEX_OUTBOUND_NUMBER} to ${process.env.TO_NUMBER}`);
   const postData = JSON.stringify({
-    name: config.app_name,
-    owner_ref: config.owner_ref,
-    to: config.to_number,
-    from: config.enablex_number,
+    name: 'TEST_APP',
+    owner_ref: 'XYZ',
+    to: process.env.TO_NUMBER,
+    from: process.env.ENABLEX_OUTBOUND_NUMBER,
     action_on_connect: {
       play: {
-        text: config.play_text,
-        voice: config.play_voice,
+        text: process.env.TTS_PLAY_TEXT,
+        voice: process.env.TTS_PLAY_VOICE,
         language: 'en-US',
         prompt_ref: '1',
       },
@@ -51,14 +51,14 @@ function createCall(eventUrl, callback) {
 
   logger.info(postData);
 
-  makeVoiceAPICall(config.path, postData, (response) => {
+  makeVoiceAPICall('/voice/v1/calls', postData, (response) => {
     callback(response);
   });
 }
 
 function timeOutHandler() {
   logger.info(`[${call.voice_id}] Disconnecting the call`);
-  hangupCall(`${config.path}/${call.voice_id}`, () => { });
+  hangupCall(`/voice/v1/calls/${call.voice_id}`, () => { });
 }
 
 function shutdown() {
@@ -72,8 +72,8 @@ function shutdown() {
 }
 
 function onListening() {
-  logger.info(`Listening on Port ${config.webhook_port}`);
-  const eventUrl = `https://${config.webhook_host}:${config.webhook_port}/event`;
+  logger.info(`Listening on Port ${process.env.SERVICE_PORT}`);
+  const eventUrl = `https://${process.env.PUBLIC_WEBHOOK_HOST}:${process.env.SERVICE_PORT}/event`;
   // Initiating Outbound Call
   createCall(eventUrl, (response) => {
     const msg = JSON.parse(response);
@@ -83,12 +83,12 @@ function onListening() {
 }
 
 /* Initializing WebServer */
-if (config.ngrok === true) {
-  server = app.listen(config.webhook_port, () => {
-    logger.info(`Server running on port ${config.webhook_port}`);
+if (process.env.USE_NGROK_TUNNEL === 'true') {
+  server = app.listen(process.env.SERVICE_PORT, () => {
+    logger.info(`Server running on port ${process.env.SERVICE_PORT}`);
     (async () => {
       try {
-        url = await ngrok.connect({ proto: 'http', addr: config.webhook_port });
+        url = await ngrok.connect({ proto: 'http', addr: process.env.SERVICE_PORT });
         logger.info('ngrok tunnel set up:', url);
       } catch (error) {
         logger.info(`Error happened while trying to connect via ngrok ${JSON.stringify(error)}`);
@@ -98,19 +98,19 @@ if (config.ngrok === true) {
       url += '/event';
     })();
   });
-} else if (config.ngrok === false) {
+} else if (process.env.USE_NGROK_TUNNEL === 'false') {
   const options = {
-    key: readFileSync(config.certificate.ssl_key).toString(),
-    cert: readFileSync(config.certificate.ssl_cert).toString(),
+    key: readFileSync(process.env.CERTIFICATE_SSL_KEY).toString(),
+    cert: readFileSync(process.env.CERTIFICATE_SSL_CERT).toString(),
   };
-  if (config.certificate.ssl_ca_certs) {
+  if (process.env.CERTIFICATE_SSL_CACERTS) {
     options.ca = [];
-    options.ca.push(readFileSync(config.certificate.ssl_ca_certs).toString());
+    options.ca.push(readFileSync(process.env.CERTIFICATE_SSL_CACERTS).toString());
   }
 
   server = https.createServer(options, app);
-  app.set('port', config.webhook_port);
-  server.listen(config.webhook_port);
+  app.set('port', process.env.SERVICE_PORT);
+  server.listen(process.env.SERVICE_PORT);
 
   server.on('error', onError);
   server.on('listening', onListening);
@@ -127,10 +127,10 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static('client'));
 app.post('/create-call', (req, res) => {
   /* Initiating Outbound Call */
-  config.enablex_number = req.body.from;
-  config.to_number = req.body.to;
-  config.play_text = req.body.play_text;
-  config.play_voice = req.body.play_voice;
+  process.env.ENABLEX_OUTBOUND_NUMBER = req.body.from;
+  process.env.TO_NUMBER = req.body.to;
+  process.env.TTS_PLAY_TEXT = req.body.play_text;
+  process.env.TTS_PLAY_VOICE = req.body.play_voice;
   createCall(url, (response) => {
     const msg = JSON.parse(response);
     call.voice_id = msg.voice_id;
@@ -168,7 +168,7 @@ app.get('/event-stream', (req, res) => {
 });
 
 app.post('/event', (req, res) => {
-  const key = crypto.createDecipher(req.headers['x-algoritm'], config.app_id);
+  const key = crypto.createDecipher(req.headers['x-algoritm'], process.env.ENABLEX_APP_ID);
   let decryptedData = key.update(req.body.encrypted_data, req.headers['x-format'], req.headers['x-encoding']);
   decryptedData += key.final(req.headers['x-encoding']);
   const jsonObj = JSON.parse(decryptedData);
@@ -197,12 +197,12 @@ function voiceEventHandler(voiceEvent) {
       const playCommand = JSON.stringify({
         play: {
           text: 'This is the 1st level menu, Hanging up the call in 10 Sec',
-          voice: config.play_voice,
+          voice: process.env.TTS_PLAY_VOICE,
           language: 'en-US',
           prompt_ref: '2',
         },
       });
-      makeVoiceAPICall(`${config.path}/${call.voice_id}`, playCommand, () => {});
+      makeVoiceAPICall(`/voice/v1/calls/${call.voice_id}`, playCommand, () => {});
     }
     if (voiceEvent.playstate === 'playfinished' && voiceEvent.prompt_ref === '2') {
       logger.info(`[${call.voice_id}] 1st Level IVR menu is Completed, Disconnecting the call in 10 Sec`);

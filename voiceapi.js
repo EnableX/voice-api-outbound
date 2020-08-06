@@ -3,18 +3,18 @@ const https = require('https');
 // modules installed from npm
 const btoa = require('btoa');
 // application modules
-const config = require('./config-outbound');
+require('dotenv').config();
 const logger = require('./logger');
 
 /* Function to make REST API Calls */
 function makeVoiceAPICall(path, data, callback) {
   const httpOptions = {
-    host: config.voice_server_host,
-    port: config.voice_server_port,
+    host: 'api.enablex.io',
+    port: 443,
     path,
     method: 'POST',
     headers: {
-      Authorization: `Basic ${btoa(`${config.app_id}:${config.app_key}`)}`,
+      Authorization: `Basic ${btoa(`${process.env.ENABLEX_APP_ID}:${process.env.ENABLEX_APP_KEY}`)}`,
       'Content-Type': 'application/json',
       'Content-Length': data.length,
     },
@@ -41,12 +41,12 @@ function makeVoiceAPICall(path, data, callback) {
 /* Function to Hangup Call */
 function hangupCall(path, callback) {
   const httpOptions = {
-    host: config.voice_server_host,
-    port: config.voice_server_port,
+    host: 'api.enablex.io',
+    port: 443,
     path,
     method: 'DELETE',
     headers: {
-      Authorization: `Basic ${btoa(`${config.app_id}:${config.app_key}`)}`,
+      Authorization: `Basic ${btoa(`${process.env.ENABLEX_APP_ID}:${process.env.ENABLEX_APP_KEY}`)}`,
       'Content-Type': 'application/json',
     },
   };
@@ -75,11 +75,11 @@ function onError(error) {
 
   switch (error.code) {
     case 'EACCES':
-      logger.error(`Port ${config.webhook_port} requires elevated privileges`);
+      logger.error(`Port ${process.env.SERVICE_PORT} requires elevated privileges`);
       process.exit(1);
       break;
     case 'EADDRINUSE':
-      logger.error(`Port ${config.webhook_port} is already in use`);
+      logger.error(`Port ${process.env.SERVICE_PORT} is already in use`);
       process.exit(1);
       break;
     default:

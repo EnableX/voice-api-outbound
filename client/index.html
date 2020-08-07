@@ -137,7 +137,7 @@
   <script>
 
     if (!!window.EventSource) {
-      var evtSource = new EventSource('http://localhost:3000/event-stream');
+      var evtSource = new EventSource('/event-stream');
       var eventList = document.getElementById("myList");
 
       evtSource.onopen = function () {

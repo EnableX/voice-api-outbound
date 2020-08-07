@@ -46,7 +46,7 @@ function makeCall(details, callback) {
       }
     }
   };
-  xhttp.open('POST', './create-call/', true);
+  xhttp.open('POST', './outbound-call/', true);
   xhttp.setRequestHeader('Content-Type', 'application/json');
   xhttp.send(JSON.stringify(details));
 }

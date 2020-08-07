@@ -1,35 +1,32 @@
 // core modules
-const https = require('https');
+const { createServer } = require('https');
 const { readFileSync } = require('fs');
 // modules installed from npm
-const events = require('events');
+const { EventEmitter } = require('events');
 const express = require('express');
 const bodyParser = require('body-parser');
-const crypto = require('crypto');
-const ngrok = require('ngrok');
+const { createDecipher } = require('crypto');
+const { connect } = require('ngrok');
 require('dotenv').config();
 const _ = require('lodash');
 // application modules
 const logger = require('./logger');
 const {
-  makeVoiceAPICall, createCall, hangupCall, onError,
+  ivrVoiceCall, makeOutboundCall, hangupCall,
 } = require('./voiceapi');
 
 // Express app setup
 const app = express();
 
-const eventEmitter = new events.EventEmitter();
+const eventEmitter = new EventEmitter();
 
 let server;
 let webHookUrl;
 let callVoiceId;
-const consoleLog = [];
+let ttsPlayVoice = 'female';
+const sseMsg = [];
 
-function timeOutHandler() {
-  logger.info(`[${callVoiceId}] Disconnecting the call`);
-  hangupCall(`/voice/v1/calls/${callVoiceId}`, () => { });
-}
-
+// shutdown the node server forcefully
 function shutdown() {
   server.close(() => {
     logger.info('Shutting down the server');
@@ -40,17 +37,15 @@ function shutdown() {
   }, 10000);
 }
 
-function onListening() {
-  logger.info(`Listening on Port ${process.env.SERVICE_PORT}`);
-  webHookUrl = `${process.env.PUBLIC_WEBHOOK_HOST}/event`;
-}
-
-function createNgrokTunnel() {
-  server = app.listen(process.env.SERVICE_PORT, () => {
-    console.log(`Server running on port ${process.env.SERVICE_PORT}`);
+// exposes web server running on local machine to the internet
+// @param - web server port
+// @return - public URL of your tunnel
+function createNgrokTunnel(serverPort) {
+  server = app.listen(serverPort, () => {
+    console.log(`Server running on port ${serverPort}`);
     (async () => {
       try {
-        webHookUrl = await ngrok.connect({ proto: 'http', addr: process.env.SERVICE_PORT });
+        webHookUrl = await connect({ proto: 'http', addr: serverPort });
         console.log('ngrok tunnel set up:', webHookUrl);
       } catch (error) {
         console.log(`Error happened while trying to connect via ngrok ${JSON.stringify(error)}`);
@@ -62,7 +57,35 @@ function createNgrokTunnel() {
   });
 }
 
-function createAppServer() {
+// Set webhook event url
+function setWebHookEventUrl() {
+  logger.info(`Listening on Port ${process.env.SERVICE_PORT}`);
+  webHookUrl = `${process.env.PUBLIC_WEBHOOK_HOST}/event`;
+}
+
+// Handle error generated while creating / starting an http server
+function onError(error) {
+  if (error.syscall !== 'listen') {
+    throw error;
+  }
+
+  switch (error.code) {
+    case 'EACCES':
+      logger.error(`Port ${process.env.SERVICE_PORT} requires elevated privileges`);
+      process.exit(1);
+      break;
+    case 'EADDRINUSE':
+      logger.error(`Port ${process.env.SERVICE_PORT} is already in use`);
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+}
+
+// create and start an HTTPS node app server
+// An SSL Certificate (Self Signed or Registered) is required
+function createAppServer(serverPort) {
   const options = {
     key: readFileSync(process.env.CERTIFICATE_SSL_KEY).toString(),
     cert: readFileSync(process.env.CERTIFICATE_SSL_CERT).toString(),
@@ -72,19 +95,20 @@ function createAppServer() {
     options.ca.push(readFileSync(process.env.CERTIFICATE_SSL_CACERTS).toString());
   }
 
-  server = https.createServer(options, app);
-  app.set('port', process.env.SERVICE_PORT);
-  server.listen(process.env.SERVICE_PORT);
-
+  // Create https express server
+  server = createServer(options, app);
+  app.set('port', serverPort);
+  server.listen(serverPort);
   server.on('error', onError);
-  server.on('listening', onListening);
+  server.on('listening', setWebHookEventUrl);
 }
 
 /* Initializing WebServer */
+const servicePort = process.env.SERVICE_PORT || 3000;
 if (process.env.USE_NGROK_TUNNEL === 'true' && process.env.USE_PUBLIC_WEBHOOK === 'false') {
-  createNgrokTunnel();
+  createNgrokTunnel(servicePort);
 } else if (process.env.USE_PUBLIC_WEBHOOK === 'true' && process.env.USE_NGROK_TUNNEL === 'false') {
-  createAppServer();
+  createAppServer(servicePort);
 } else {
   logger.error('Incorrect configuration - either USE_NGROK_TUNNEL or USE_PUBLIC_WEBHOOK should be set to true');
 }
@@ -98,29 +122,27 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static('client'));
 
-app.post('/create-call', (req, res) => {
+// outbound voice call
+// req contains fromNumber, toNumber, TTS text, & voice (gender)
+app.post('/outbound-call', (req, res) => {
+  logger.info(`Initiating a call from ${req.body.from} to ${req.body.to}`);
+  // set msg to be used for SSE events to display on webpage
+  sseMsg.push(`Initiating a call from ${req.body.from} to ${req.body.to}`);
+  // voice (gender) received from request will also be used in webhook
+  ttsPlayVoice = req.body.play_voice;
   /* Initiating Outbound Call */
-  process.env.ENABLEX_OUTBOUND_NUMBER = req.body.from;
-  process.env.TO_NUMBER = req.body.to;
-  process.env.TTS_PLAY_TEXT = req.body.play_text;
-  process.env.TTS_PLAY_VOICE = req.body.play_voice;
-  logger.info(`Initiating a call from ${process.env.ENABLEX_OUTBOUND_NUMBER} to ${process.env.TO_NUMBER}`);
-  consoleLog.push(`Initiating a call from ${process.env.ENABLEX_OUTBOUND_NUMBER} to ${process.env.TO_NUMBER}`);
-  createCall(webHookUrl, (response) => {
+  makeOutboundCall(req.body, webHookUrl, (response) => {
     const msg = JSON.parse(response);
+    // set voice_id to be used throughout
     callVoiceId = msg.voice_id;
     logger.info(`Voice Id of the Call ${callVoiceId}`);
+    res.send(msg);
+    res.status(200);
   });
-  res.send('ok');
-  res.status(200);
 });
 
-function constructSSE(res, id, data) {
-  res.write(`id: ${id}\n`);
-  res.write(`data: ${data}\n\n`);
-}
-
-function sendSSE(req, res) {
+// It will send stream / events all the events received from webhook to the client
+app.get('/event-stream', (req, res) => {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
@@ -130,60 +152,61 @@ function sendSSE(req, res) {
   const id = (new Date()).toLocaleTimeString();
 
   setInterval(() => {
-    if (!_.isEmpty(consoleLog[0])) {
-      const data = `${consoleLog[0]}`;
-      constructSSE(res, id, data);
-      consoleLog.pop();
+    if (!_.isEmpty(sseMsg[0])) {
+      const data = `${sseMsg[0]}`;
+      res.write(`id: ${id}\n`);
+      res.write(`data: ${data}\n\n`);
+      sseMsg.pop();
     }
   }, 100);
-}
-
-app.get('/event-stream', (req, res) => {
-  sendSSE(req, res);
 });
 
+// Webhook event which will be called by EnableX server once an outbound call is made
+// It should be publicly accessible. Please refer document for webhook security.
 app.post('/event', (req, res) => {
-  const key = crypto.createDecipher(req.headers['x-algoritm'], process.env.ENABLEX_APP_ID);
+  const key = createDecipher(req.headers['x-algoritm'], process.env.ENABLEX_APP_ID);
   let decryptedData = key.update(req.body.encrypted_data, req.headers['x-format'], req.headers['x-encoding']);
   decryptedData += key.final(req.headers['x-encoding']);
   const jsonObj = JSON.parse(decryptedData);
   logger.info(JSON.stringify(jsonObj));
 
-  res.statusCode = 200;
   res.send();
-  res.end();
+  res.status(200);
   eventEmitter.emit('voicestateevent', jsonObj);
 });
+
+// Call is completed / disconneted, inform server to hangup the call
+function timeOutHandler() {
+  logger.info(`[${callVoiceId}] Disconnecting the call`);
+  hangupCall(callVoiceId, () => { });
+}
 
 /* WebHook Event Handler function */
 function voiceEventHandler(voiceEvent) {
   if (voiceEvent.state) {
     if (voiceEvent.state === 'connected') {
-      logger.info(`[${callVoiceId}] Outbound Call is connected`);
-      consoleLog.push('Outbound Call is connected');
+      const eventMsg = 'Outbound Call is connected';
+      logger.info(`[${callVoiceId}] ${eventMsg}`);
+      sseMsg.push(eventMsg);
     } else if (voiceEvent.state === 'disconnected') {
-      logger.info(`[${callVoiceId}] Outbound Call is disconnected`);
-      consoleLog.push('Outbound Call is disconnected');
-      // shutdown();
+      const eventMsg = 'Outbound Call is disconnected';
+      logger.info(`[${callVoiceId}] ${eventMsg}`);
+      sseMsg.push(eventMsg);
     }
-  } else if (voiceEvent.playstate !== undefined) {
+  }
+
+  if (voiceEvent.playstate !== undefined) {
     if (voiceEvent.playstate === 'playfinished') {
       if (voiceEvent.prompt_ref === '1') {
-        logger.info(`[${callVoiceId}] Greeting is completed, Playing IVR Menu`);
-        consoleLog.push('Greeting is completed, Playing IVR Menu');
+        const eventMsg = 'Greeting is completed, Playing IVR Menu';
+        logger.info(`[${callVoiceId}] ${eventMsg}`);
+        sseMsg.push(eventMsg);
         /* Playing IVR menu using TTS */
-        const playCommand = JSON.stringify({
-          play: {
-            text: 'This is the 1st level menu, Hanging up the call in 10 Sec',
-            voice: process.env.TTS_PLAY_VOICE,
-            language: 'en-US',
-            prompt_ref: '2',
-          },
-        });
-        makeVoiceAPICall(`/voice/v1/calls/${callVoiceId}`, playCommand, () => {});
+        ivrVoiceCall(callVoiceId, ttsPlayVoice, () => {});
       } else if (voiceEvent.prompt_ref === '2') {
-        logger.info(`[${callVoiceId}] 1st Level IVR menu is Completed, Disconnecting the call in 10 Sec`);
-        consoleLog.push('1st Level IVR menu is Completed, Disconnecting the call in 10 Sec');
+        const eventMsg = '1st Level IVR menu is Completed, Disconnecting the call in 10 Sec';
+        logger.info(`[${callVoiceId}] ${eventMsg}`);
+        sseMsg.push(eventMsg);
         setTimeout(timeOutHandler, 10000);
       }
     }

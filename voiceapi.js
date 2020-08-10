@@ -43,7 +43,7 @@ const connectEnablexServer = (data, callback) => {
   }
 };
 
-// Voice API call to play IVR menu using TTS
+// Voice API call to play IVR using TTS
 function ivrVoiceCall(callVoiceId, ttsPlayVoice, callback) {
   httpOptions.path = `/voice/v1/calls/${callVoiceId}`;
   httpOptions.method = 'POST';
@@ -58,6 +58,7 @@ function ivrVoiceCall(callVoiceId, ttsPlayVoice, callback) {
   });
 
   connectEnablexServer(postData, (response) => {
+    logger.info(`RESPONSE:- ${response}`);
     callback(response);
   });
 }
@@ -67,6 +68,7 @@ function hangupCall(callVoiceId, callback) {
   httpOptions.path = `/voice/v1/calls/${callVoiceId}`;
   httpOptions.method = 'DELETE';
   connectEnablexServer('', (response) => {
+    logger.info(`RESPONSE:- ${response}`);
     callback(response);
   });
 }
@@ -92,6 +94,7 @@ function makeOutboundCall(reqDetails, eventUrl, callback) {
   });
 
   connectEnablexServer(postData, (response) => {
+    logger.info(`RESPONSE:- ${response}`);
     callback(response);
   });
 }

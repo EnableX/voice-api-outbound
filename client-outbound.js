@@ -1,12 +1,10 @@
 // core modules
-const { createServer } = require('https');
-const { readFileSync } = require('fs');
+const { createServer } = require('http');
 // modules installed from npm
 const { EventEmitter } = require('events');
 const express = require('express');
 const bodyParser = require('body-parser');
 const { createDecipher } = require('crypto');
-const { connect } = require('ngrok');
 require('dotenv').config();
 const _ = require('lodash');
 // application modules
@@ -20,7 +18,6 @@ const app = express();
 const eventEmitter = new EventEmitter();
 
 let server;
-let webHookUrl;
 let callVoiceId;
 let ttsPlayVoice = 'female';
 const sseMsg = [];
@@ -37,30 +34,9 @@ function shutdown() {
   }, 10000);
 }
 
-// exposes web server running on local machine to the internet
-// @param - web server port
-// @return - public URL of your tunnel
-function createNgrokTunnel() {
-  server = app.listen(servicePort, () => {
-    console.log(`Server running on port ${servicePort}`);
-    (async () => {
-      try {
-        webHookUrl = await connect({ proto: 'http', addr: servicePort });
-        console.log('ngrok tunnel set up:', webHookUrl);
-      } catch (error) {
-        console.log(`Error happened while trying to connect via ngrok ${JSON.stringify(error)}`);
-        shutdown();
-        return;
-      }
-      webHookUrl += '/event';
-    })();
-  });
-}
-
 // Set webhook event url
-function setWebHookEventUrl() {
+function onListening() {
   logger.info(`Listening on Port ${servicePort}`);
-  webHookUrl = `${process.env.PUBLIC_WEBHOOK_HOST}/event`;
 }
 
 // Handle error generated while creating / starting an http server
@@ -86,33 +62,20 @@ function onError(error) {
 // create and start an HTTPS node app server
 // An SSL Certificate (Self Signed or Registered) is required
 function createAppServer() {
-  const options = {
-    key: readFileSync(process.env.CERTIFICATE_SSL_KEY).toString(),
-    cert: readFileSync(process.env.CERTIFICATE_SSL_CERT).toString(),
-  };
-  if (process.env.CERTIFICATE_SSL_CACERTS) {
-    options.ca = [];
-    options.ca.push(readFileSync(process.env.CERTIFICATE_SSL_CACERTS).toString());
-  }
+  const options = {};
 
   // Create https express server
   server = createServer(options, app);
   app.set('port', servicePort);
   server.listen(servicePort);
   server.on('error', onError);
-  server.on('listening', setWebHookEventUrl);
+  server.on('listening', onListening);
 }
 
 /* Initializing WebServer */
 if (process.env.ENABLEX_APP_ID
   && process.env.ENABLEX_APP_KEY) {
-  if (process.env.USE_NGROK_TUNNEL === 'true' && process.env.USE_PUBLIC_WEBHOOK === 'false') {
-    createNgrokTunnel();
-  } else if (process.env.USE_PUBLIC_WEBHOOK === 'true' && process.env.USE_NGROK_TUNNEL === 'false') {
-    createAppServer();
-  } else {
-    logger.error('Incorrect configuration - either USE_NGROK_TUNNEL or USE_PUBLIC_WEBHOOK should be set to true');
-  }
+  createAppServer();
 } else {
   logger.error('Please set env variables - ENABLEX_APP_ID, ENABLEX_APP_KEY');
 }
@@ -136,7 +99,7 @@ app.post('/outbound-call', (req, res) => {
   ttsPlayVoice = req.body.play_voice;
 
   /* Initiating Outbound Call */
-  makeOutboundCall(req.body, webHookUrl, (response) => {
+  makeOutboundCall(req.body, (response) => {
     const msg = JSON.parse(response);
     // set voice_id to be used throughout
     callVoiceId = msg.voice_id;

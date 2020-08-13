@@ -74,7 +74,7 @@ function hangupCall(callVoiceId, callback) {
 }
 
 // Voice API call to make an outbound call
-function makeOutboundCall(reqDetails, eventUrl, callback) {
+function makeOutboundCall(reqDetails, callback) {
   httpOptions.path = '/voice/v1/calls';
   httpOptions.method = 'POST';
   const postData = JSON.stringify({
@@ -90,7 +90,6 @@ function makeOutboundCall(reqDetails, eventUrl, callback) {
         prompt_ref: '1',
       },
     },
-    event_url: eventUrl,
   });
 
   connectEnablexServer(postData, (response) => {

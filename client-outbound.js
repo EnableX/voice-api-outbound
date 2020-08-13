@@ -17,7 +17,6 @@ const {
 
 // Express app setup
 const app = express();
-
 const eventEmitter = new EventEmitter();
 
 let server;
@@ -25,11 +24,12 @@ let webHookUrl;
 let callVoiceId;
 let ttsPlayVoice = 'female';
 const sseMsg = [];
+const servicePort = process.env.SERVICE_PORT || 3000;
 
 // shutdown the node server forcefully
 function shutdown() {
   server.close(() => {
-    logger.info('Shutting down the server');
+    logger.error('Shutting down the server');
     process.exit(0);
   });
   setTimeout(() => {
@@ -59,7 +59,7 @@ function createNgrokTunnel(serverPort) {
 
 // Set webhook event url
 function setWebHookEventUrl() {
-  logger.info(`Listening on Port ${process.env.SERVICE_PORT}`);
+  logger.info(`Listening on Port ${servicePort}`);
   webHookUrl = `${process.env.PUBLIC_WEBHOOK_HOST}/event`;
 }
 
@@ -71,11 +71,11 @@ function onError(error) {
 
   switch (error.code) {
     case 'EACCES':
-      logger.error(`Port ${process.env.SERVICE_PORT} requires elevated privileges`);
+      logger.error(`Port ${servicePort} requires elevated privileges`);
       process.exit(1);
       break;
     case 'EADDRINUSE':
-      logger.error(`Port ${process.env.SERVICE_PORT} is already in use`);
+      logger.error(`Port ${servicePort} is already in use`);
       process.exit(1);
       break;
     default:
@@ -104,7 +104,6 @@ function createAppServer(serverPort) {
 }
 
 /* Initializing WebServer */
-const servicePort = process.env.SERVICE_PORT || 3000;
 if (process.env.USE_NGROK_TUNNEL === 'true' && process.env.USE_PUBLIC_WEBHOOK === 'false') {
   createNgrokTunnel(servicePort);
 } else if (process.env.USE_PUBLIC_WEBHOOK === 'true' && process.env.USE_NGROK_TUNNEL === 'false') {
@@ -130,6 +129,7 @@ app.post('/outbound-call', (req, res) => {
   sseMsg.push(`Initiating a call from ${req.body.from} to ${req.body.to}`);
   // voice (gender) received from request will also be used in webhook
   ttsPlayVoice = req.body.play_voice;
+
   /* Initiating Outbound Call */
   makeOutboundCall(req.body, webHookUrl, (response) => {
     const msg = JSON.parse(response);
@@ -168,6 +168,7 @@ app.post('/event', (req, res) => {
   let decryptedData = key.update(req.body.encrypted_data, req.headers['x-format'], req.headers['x-encoding']);
   decryptedData += key.final(req.headers['x-encoding']);
   const jsonObj = JSON.parse(decryptedData);
+  logger.info('Response from webhook');
   logger.info(JSON.stringify(jsonObj));
 
   res.send();

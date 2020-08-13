@@ -28,7 +28,7 @@ This example contains instructions how users can initiate Outbound Calls.
 
 - WEBHOOK - Set this if USE_PUBLIC_WEBHOOK set to `true`. Else leave it empty
   - Set to web server address where this service is deployed and publicly accessible
-    - export PUBLIC_WEBHOOK_HOST=https://2886795279-3000-frugo01.environments.katacoda.com/
+    - export PUBLIC_WEBHOOK_HOST=
 
 - Tunneling - Either WEBHOOK or NGROK should be set to `true`
   - Set this to `true` if you want to deploy this service on a web server running locally on your own computer at a given port.

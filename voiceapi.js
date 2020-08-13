@@ -90,6 +90,7 @@ function makeOutboundCall(reqDetails, callback) {
         prompt_ref: '1',
       },
     },
+    event_url: `${process.env.PUBLIC_WEBHOOK_URL}/event`,
   });
 
   connectEnablexServer(postData, (response) => {

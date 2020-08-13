@@ -20,12 +20,11 @@ This example contains instructions how users can initiate Outbound Calls.
   - `export SERVICE_PORT=`
 
 ## Webhook - EnableX will send HTTP requests to your application (`/event`) after certain events occur.
-  - You need to set the publicly accessible URL of your application at https://portal.enablex.io/projects/dashboard/voice/prompt-settings/
-    - If you have deployed this service on a web server which is publicly accessible
-      - Set the URL by appending `/event`. Example - `https://{URL}/event`
-    - If you want to test this service on a web server running locally on your own computer at a given port, with ngrok, you can generate URL that tunnels requests to your web server running locally. Once ngrok installed, run following -
-      - `./ngrok http {SERVICE_PORT}` . It should provide you a ngrok URL something similar to `https://fc6c892d6cd7.ngrok.io`
-        - Set the URL by appending `/event`. Example - `https://fc6c892d6cd7.ngrok.io/event`
+- If you have deployed this service on a web server which is publicly accessible, set the public URL. Example - `https://{PUBLIC_URL}`
+  - `export PUBLIC_WEBHOOK_URL=`
+- If you want to test this service on a web server running locally on your own computer at a given port, with ngrok, you can generate URL that tunnels requests to your web server running locally. Once ngrok installed, run following -
+  - `./ngrok http {SERVICE_PORT}` . It should provide you a ngrok URL something similar to `https://fc6c892d6cd7.ngrok.io`. Now, Set the ngrok URL. Example - `https://fc6c892d6cd7.ngrok.io/event`
+    - `export PUBLIC_WEBHOOK_URL=`
 
 ## Webhook security
 - Webhook security is also implemented as part of the voice service APIs.

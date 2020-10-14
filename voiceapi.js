@@ -45,16 +45,14 @@ const connectEnablexServer = (data, callback) => {
 
 // Voice API call to play IVR using TTS
 function ivrVoiceCall(callVoiceId, ttsPlayVoice, callback) {
-  httpOptions.path = `/voice/v1/calls/${callVoiceId}`;
-  httpOptions.method = 'POST';
+  httpOptions.path = `/voice/v1/call/${callVoiceId}/play`;
+  httpOptions.method = 'PUT';
 
   const postData = JSON.stringify({
-    play: {
       text: 'This is the 1st level menu, Hanging up the call in 10 Sec',
       voice: ttsPlayVoice,
       language: 'en-US',
-      prompt_ref: '2',
-    },
+      prompt_ref: '2'
   });
 
   connectEnablexServer(postData, (response) => {
@@ -65,7 +63,7 @@ function ivrVoiceCall(callVoiceId, ttsPlayVoice, callback) {
 
 // Voice API call to hangup the call
 function hangupCall(callVoiceId, callback) {
-  httpOptions.path = `/voice/v1/calls/${callVoiceId}`;
+  httpOptions.path = `/voice/v1/call/${callVoiceId}`;
   httpOptions.method = 'DELETE';
   connectEnablexServer('', (response) => {
     logger.info(`RESPONSE:- ${response}`);
@@ -75,7 +73,7 @@ function hangupCall(callVoiceId, callback) {
 
 // Voice API call to make an outbound call
 function makeOutboundCall(reqDetails, callback) {
-  httpOptions.path = '/voice/v1/calls';
+  httpOptions.path = '/voice/v1/call';
   httpOptions.method = 'POST';
   const postData = JSON.stringify({
     name: 'TEST_APP',

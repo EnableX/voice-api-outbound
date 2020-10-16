@@ -1,5 +1,5 @@
 // core modules
-const https = require('https');
+const http = require('http');
 // modules installed from npm
 const { EventEmitter } = require('events');
 const express = require('express');
@@ -65,7 +65,7 @@ function createAppServer() {
   const options = {};
 
   // Create https express server
-  server = https.createServer(options, app);
+  server = http.createServer(options, app);
   app.set('port', servicePort);
   server.listen(servicePort);
   server.on('error', onError);

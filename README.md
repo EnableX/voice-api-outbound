@@ -3,7 +3,7 @@ This example contains instructions how users can initiate Outbound Calls.
 
 
 ## Pre-requisite
-- You will need Enablex Application credentials, APP ID and APP KEY.
+- You will need Enablex Application credentials, APP ID and APP KEY. To find credentials, register with EnableX (https://portal.enablex.io/cpaas/trial-sign-up/).
 - You will need a place for hosting this application either cloud or local machine.
 
 
